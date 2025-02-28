@@ -1,4 +1,5 @@
 """Coordinator to handle Opower connections."""
+
 from datetime import datetime, timedelta
 import logging
 from types import MappingProxyType
@@ -84,10 +85,14 @@ class OpowerCoordinator(DataUpdateCoordinator[dict[str, Forecast]]):
             )
             cost_statistic_id = f"{DOMAIN}:{id_prefix}_energy_cost"
             consumption_statistic_id = f"{DOMAIN}:{id_prefix}_energy_consumption"
+            received_statistic_id = f"{DOMAIN}:{id_prefix}_energy_received"
+            delivered_statistic_id = f"{DOMAIN}:{id_prefix}_energy_delivered"
             _LOGGER.debug(
-                "Updating Statistics for %s and %s",
+                "Updating Statistics for %s, %s, %s, %s",
                 cost_statistic_id,
                 consumption_statistic_id,
+                received_statistic_id,
+                delivered_statistic_id,
             )
 
             last_stat = await get_instance(self.hass).async_add_executor_job(
@@ -98,6 +103,8 @@ class OpowerCoordinator(DataUpdateCoordinator[dict[str, Forecast]]):
                 cost_reads = await self._async_get_all_cost_reads(account)
                 cost_sum = 0.0
                 consumption_sum = 0.0
+                received_sum = 0.0
+                delivered_sum = 0.0
                 last_stats_time = None
             else:
                 cost_reads = await self._async_get_recent_cost_reads(
@@ -111,17 +118,26 @@ class OpowerCoordinator(DataUpdateCoordinator[dict[str, Forecast]]):
                     self.hass,
                     cost_reads[0].start_time,
                     None,
-                    {cost_statistic_id, consumption_statistic_id},
+                    {
+                        cost_statistic_id,
+                        consumption_statistic_id,
+                        received_statistic_id,
+                        delivered_statistic_id,
+                    },
                     "hour" if account.meter_type == MeterType.ELEC else "day",
                     None,
                     {"sum"},
                 )
                 cost_sum = cast(float, stats[cost_statistic_id][0]["sum"])
                 consumption_sum = cast(float, stats[consumption_statistic_id][0]["sum"])
+                received_sum = cast(float, stats[received_statistic_id][0]["sum"])
+                delivered_sum = cast(float, stats[delivered_statistic_id][0]["sum"])
                 last_stats_time = stats[cost_statistic_id][0]["start"]
 
             cost_statistics = []
             consumption_statistics = []
+            received_statistics = []
+            delivered_statistics = []
 
             for cost_read in cost_reads:
                 start = cost_read.start_time
@@ -129,6 +145,8 @@ class OpowerCoordinator(DataUpdateCoordinator[dict[str, Forecast]]):
                     continue
                 cost_sum += cost_read.provided_cost
                 consumption_sum += cost_read.consumption
+                received_sum += cost_read.received
+                delivered_sum += cost_read.delivered
 
                 cost_statistics.append(
                     StatisticData(
@@ -138,6 +156,16 @@ class OpowerCoordinator(DataUpdateCoordinator[dict[str, Forecast]]):
                 consumption_statistics.append(
                     StatisticData(
                         start=start, state=cost_read.consumption, sum=consumption_sum
+                    )
+                )
+                received_statistics.append(
+                    StatisticData(
+                        start=start, state=cost_read.received, sum=received_sum
+                    )
+                )
+                delivered_statistics.append(
+                    StatisticData(
+                        start=start, state=cost_read.delivered, sum=delivered_sum
                     )
                 )
 
@@ -167,10 +195,36 @@ class OpowerCoordinator(DataUpdateCoordinator[dict[str, Forecast]]):
                 if account.meter_type == MeterType.ELEC
                 else UnitOfVolume.CENTUM_CUBIC_FEET,
             )
+            received_metadata = StatisticMetaData(
+                has_mean=False,
+                has_sum=True,
+                name=f"{name_prefix} received",
+                source=DOMAIN,
+                statistic_id=received_statistic_id,
+                unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR
+                if account.meter_type == MeterType.ELEC
+                else UnitOfVolume.CENTUM_CUBIC_FEET,
+            )
+            delivered_metadata = StatisticMetaData(
+                has_mean=False,
+                has_sum=True,
+                name=f"{name_prefix} delivered",
+                source=DOMAIN,
+                statistic_id=delivered_statistic_id,
+                unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR
+                if account.meter_type == MeterType.ELEC
+                else UnitOfVolume.CENTUM_CUBIC_FEET,
+            )
 
             async_add_external_statistics(self.hass, cost_metadata, cost_statistics)
             async_add_external_statistics(
                 self.hass, consumption_metadata, consumption_statistics
+            )
+            async_add_external_statistics(
+                self.hass, received_metadata, received_statistics
+            )
+            async_add_external_statistics(
+                self.hass, delivered_metadata, delivered_statistics
             )
 
     async def _async_get_all_cost_reads(self, account: Account) -> list[CostRead]:
@@ -193,13 +247,13 @@ class OpowerCoordinator(DataUpdateCoordinator[dict[str, Forecast]]):
             else datetime.now()
         )
         cost_reads += await self.api.async_get_cost_reads(
-            account, AggregateType.DAY, start, end
+            account, AggregateType.DAY, start, end, True
         )
         if account.meter_type == MeterType.ELEC:
             start = end if not cost_reads else cost_reads[-1].end_time
             end = datetime.now()
             cost_reads += await self.api.async_get_cost_reads(
-                account, AggregateType.HOUR, start, end
+                account, AggregateType.HOUR, start, end, True
             )
         return cost_reads
 
@@ -217,4 +271,5 @@ class OpowerCoordinator(DataUpdateCoordinator[dict[str, Forecast]]):
             else AggregateType.DAY,
             datetime.fromtimestamp(last_stat_time) - timedelta(days=30),
             datetime.now(),
+            True,
         )

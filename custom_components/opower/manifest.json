@@ -1,18 +1,18 @@
 {
-  "domain": "opower",
-  "name": "Opower",
+  "domain": "opower_jc",
+  "name": "Opower (JC)",
   "codeowners": [
-    "@tronikos"
+    "@jasperchan"
   ],
   "config_flow": true,
   "dependencies": [
     "recorder"
   ],
-  "documentation": "https://github.com/tronikos/opower-hacs",
+  "documentation": "https://github.com/jasperchan/opower-hacs",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/tronikos/opower-hacs/issues",
+  "issue_tracker": "https://github.com/jasperchan/opower-hacs/issues",
   "requirements": [
-    "opower==0.0.20"
+    "git+https://github.com/jasperchan/opower.git#egg=opower"
   ],
   "version": "0.0.0"
 }

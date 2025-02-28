@@ -232,21 +232,21 @@ class OpowerCoordinator(DataUpdateCoordinator[dict[str, Forecast]]):
 
         - month resolution for all years (since account activation)
         - day resolution for past 3 years
-        - hour resolution for past 2 months, only for electricity, not gas
+        - hour resolution for past 12 months, only for electricity, not gas
         """
         cost_reads = []
         cost_reads += await self.api.async_get_usage_reads(
             account,
             AggregateType.DAY,
-            start=datetime.now() - timedelta(days=365),
-            end=datetime.now(),
+            start_date=datetime.now() - timedelta(days=365 * 3),
+            end_date=datetime.now(),
         )
         if account.meter_type == MeterType.ELEC:
             cost_reads += await self.api.async_get_usage_reads(
                 account,
                 AggregateType.HOUR,
-                start=datetime.now() - timedelta(days=30),
-                end=datetime.now(),
+                start_date=datetime.now() - timedelta(days=365),
+                end_date=datetime.now(),
             )
         return cost_reads
 
@@ -262,6 +262,6 @@ class OpowerCoordinator(DataUpdateCoordinator[dict[str, Forecast]]):
             AggregateType.HOUR
             if account.meter_type == MeterType.ELEC
             else AggregateType.DAY,
-            datetime.fromtimestamp(last_stat_time) - timedelta(days=30),
-            datetime.now(),
+            start_date=datetime.fromtimestamp(last_stat_time) - timedelta(days=30),
+            end_date=datetime.now(),
         )

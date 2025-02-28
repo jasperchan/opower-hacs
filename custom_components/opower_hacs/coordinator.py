@@ -235,25 +235,18 @@ class OpowerCoordinator(DataUpdateCoordinator[dict[str, Forecast]]):
         - hour resolution for past 2 months, only for electricity, not gas
         """
         cost_reads = []
-        start = None
-        end = datetime.now() - timedelta(days=3 * 365)
-        cost_reads += await self.api.async_get_cost_reads(
-            account, AggregateType.BILL, start, end
-        )
-        start = end if not cost_reads else cost_reads[-1].end_time
-        end = (
-            datetime.now() - timedelta(days=2 * 30)
-            if account.meter_type == MeterType.ELEC
-            else datetime.now()
-        )
-        cost_reads += await self.api.async_get_cost_reads(
-            account, AggregateType.DAY, start, end, True
+        cost_reads += await self.api.async_get_usage_reads(
+            account,
+            AggregateType.DAY,
+            start=datetime.now() - timedelta(days=365),
+            end=datetime.now(),
         )
         if account.meter_type == MeterType.ELEC:
-            start = end if not cost_reads else cost_reads[-1].end_time
-            end = datetime.now()
-            cost_reads += await self.api.async_get_cost_reads(
-                account, AggregateType.HOUR, start, end, True
+            cost_reads += await self.api.async_get_usage_reads(
+                account,
+                AggregateType.HOUR,
+                start=datetime.now() - timedelta(days=30),
+                end=datetime.now(),
             )
         return cost_reads
 
@@ -264,12 +257,11 @@ class OpowerCoordinator(DataUpdateCoordinator[dict[str, Forecast]]):
 
         Hourly for electricity, daily for gas.
         """
-        return await self.api.async_get_cost_reads(
+        return await self.api.async_get_usage_reads(
             account,
             AggregateType.HOUR
             if account.meter_type == MeterType.ELEC
             else AggregateType.DAY,
             datetime.fromtimestamp(last_stat_time) - timedelta(days=30),
             datetime.now(),
-            True,
         )

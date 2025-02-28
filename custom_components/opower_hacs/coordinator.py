@@ -68,10 +68,10 @@ class OpowerCoordinator(DataUpdateCoordinator[dict[str, Forecast]]):
             await self.api.async_login()
         except InvalidAuth as err:
             raise ConfigEntryAuthFailed from err
-        forecasts: list[Forecast] = await self.api.async_get_forecast()
-        _LOGGER.debug("Updating sensor data with: %s", forecasts)
-        await self._insert_statistics([forecast.account for forecast in forecasts])
-        return {forecast.account.utility_account_id: forecast for forecast in forecasts}
+        accounts: list[Account] = await self.api.async_get_accounts()
+        await self._insert_statistics(accounts)
+        # Don't return anything since we want to use the real opower integration for forecasts
+        return {}
 
     async def _insert_statistics(self, accounts: list[Account]) -> None:
         """Insert Opower statistics."""

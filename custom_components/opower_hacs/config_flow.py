@@ -1,11 +1,12 @@
 """Config flow for Opower integration."""
+
 from __future__ import annotations
 
 from collections.abc import Mapping
 import logging
 from typing import Any
 
-from opower import CannotConnect, InvalidAuth, Opower, get_supported_utility_names
+from opower_gql import CannotConnect, InvalidAuth, Opower, get_supported_utility_names
 import voluptuous as vol
 
 from homeassistant import config_entries

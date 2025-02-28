@@ -22,13 +22,13 @@ jobs:
           version="${version#v}"
           yq e -P -o=json \
             -i ".version = \"${version}\"" \
-            "${{ github.workspace }}/custom_components/opower_jc/manifest.json"
+            "${{ github.workspace }}/custom_components/opower_hacs/manifest.json"
       - name: "📦 Created zipped release package"
         shell: bash
         run: |
-          cd "${{ github.workspace }}/custom_components/opower_jc"
-          zip opower_jc.zip -r ./
+          cd "${{ github.workspace }}/custom_components/opower_hacs"
+          zip opower_hacs.zip -r ./
       - name: "⬆️ Upload zip to release"
         uses: softprops/action-gh-release@v0.1.15
         with:
-          files: ${{ github.workspace }}/custom_components/opower_jc/opower_jc.zip
+          files: ${{ github.workspace }}/custom_components/opower_hacs/opower_hacs.zip

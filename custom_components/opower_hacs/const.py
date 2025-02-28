@@ -1,5 +1,5 @@
 """Constants for the Opower integration."""
 
-DOMAIN = "opower_jc"
+DOMAIN = "opower_hacs"
 
 CONF_UTILITY = "utility"

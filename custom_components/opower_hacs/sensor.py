@@ -1,10 +1,11 @@
 """Support for Opower sensors."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from opower import Forecast, MeterType, UnitOfMeasure
+from opower_gql import Forecast, MeterType, UnitOfMeasure
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,

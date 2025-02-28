@@ -5,7 +5,7 @@ import logging
 from types import MappingProxyType
 from typing import Any, cast
 
-from opower import (
+from opower_gql import (
     Account,
     AggregateType,
     CostRead,
